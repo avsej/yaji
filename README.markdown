@@ -13,6 +13,17 @@ YAJI::Parser initializer accepts `IO` instance or `String`.
     YAJI::Parser.new('{"foo":"bar"}')
     YAJI::Parser.new(File.open('data.json'))
 
+There is integration with [curb][1], so you can pass `Curl::Easy` instance to
+as input for parser.
+
+    require 'curl'
+    curl = Curl::Easy.new('http://avsej.net/test.json')
+    parser = YAJI::Parser.new(curl)
+    parser.each.to_a.first  #=> {"foo"=>"bar", "baz"=>{"nums"=>[42, 3.1415]}}
+
+There no strict requirement though, it could be any instance responding
+to `#on_body` and `#perform`.
+
 Parser instance provides two iterators to get JSON data: event-oriented
 and object-oriented. `YAJI::Parser#parse` yields tuple `[path, event,
 value] describing some parser event. For example, this code
@@ -66,6 +77,7 @@ code above will print two lines:
 You can use this iterator when the data is huge and you'd like to allow
 GC to collect yielded object before parser finish its job.
 
+
 LICENSE
 -------
 
@@ -82,3 +94,5 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+[1]: https://rubygems.org/gems/curb

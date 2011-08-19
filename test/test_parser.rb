@@ -1,5 +1,6 @@
 require 'minitest/autorun'
 require 'yaji'
+require 'curb'
 
 class TestParser < MiniTest::Unit::TestCase
 
@@ -134,6 +135,14 @@ class TestParser < MiniTest::Unit::TestCase
                   "movies" => [2,3]
                 }]
     assert expected, objects
+  end
+
+  def test_it_could_curb_async_approach
+    curl = Curl::Easy.new('http://avsej.net/test.json')
+    parser = YAJI::Parser.new(curl)
+    object = parser.each.to_a.first
+    expected = {"foo"=>"bar", "baz"=>{"nums"=>[42, 3.1415]}}
+    assert expected, object
   end
 
   protected

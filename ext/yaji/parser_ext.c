@@ -22,7 +22,20 @@
 
 #define RB_P(OBJ) \
 	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_funcall(OBJ, rb_intern("object_id"), 0)); \
+	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_str_new_cstr(" ")); \
+	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_funcall(OBJ, rb_intern("class"), 0)); \
+	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_str_new_cstr(" ")); \
 	rb_funcall(rb_stderr, rb_intern("puts"), 1, rb_funcall(OBJ, rb_intern("inspect"), 0));
+
+#define RERAISE_PARSER_ERROR(parser) \
+{ \
+	unsigned char* emsg = yajl_get_error(parser->handle, 1, \
+			(const unsigned char*)RSTRING_PTR(p->chunk), \
+			RSTRING_LEN(p->chunk)); \
+	VALUE errobj = rb_exc_new2(c_parse_error, (const char*) emsg); \
+	yajl_free_error(parser->handle, emsg); \
+	rb_exc_raise(errobj); \
+}
 
 static int yaji_null(void *ctx)
 {
@@ -143,6 +156,26 @@ static int yaji_end_array(void *ctx)
 	return STATUS_CONTINUE;
 }
 
+static VALUE rb_yaji_parser_parse_chunk(VALUE chunk, VALUE self)
+{
+	yajl_status rc;
+	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
+	const char* buf = RSTRING_PTR(chunk);
+	unsigned int len = RSTRING_LEN(chunk);
+	int i;
+
+	p->events = rb_ary_new();
+	p->chunk = chunk;
+	rc = yajl_parse(p->handle, (const unsigned char*)buf, len);
+	if (rc == yajl_status_error) {
+		RERAISE_PARSER_ERROR(p);
+	}
+	for (i=0; i<RARRAY_LEN(p->events); i++) {
+		rb_funcall(p->parser_cb, id_call, 1, RARRAY_PTR(p->events)[i]);
+	}
+	return rb_funcall(chunk, id_bytesize, 0, NULL);
+}
+
 static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 {
 	yaji_parser* p;
@@ -155,12 +188,16 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 	p->symbolize_keys = 0;
 	p->rbufsize = Qnil;
 	p->input = Qnil;
+	p->parser_cb = Qnil;
 
 	rb_scan_args(argc, argv, "11", &p->input, &opts);
 	if (TYPE(p->input) == T_STRING) {
 		p->input = rb_class_new_instance(1, &p->input, c_stringio);
+	} else if (rb_respond_to(p->input, id_perform) && rb_respond_to(p->input, id_on_body)) {
+		rb_block_call(p->input, id_on_body, 0, NULL, rb_yaji_parser_parse_chunk, obj);
 	} else if (!rb_respond_to(p->input, id_read)) {
-		rb_raise(c_parse_error, "input must be a String or IO");
+		rb_raise(c_parse_error, "input must be a String or IO or "
+				"something responding to #perform and #on_body e.g. Curl::Easy");
 	}
 	if (!NIL_P(opts)) {
 		Check_Type(opts, T_HASH);
@@ -190,50 +227,35 @@ static VALUE rb_yaji_parser_init(int argc, VALUE *argv, VALUE self)
 	return self;
 }
 
-#define RERAISE_PARSER_ERROR(parser, chunk, len) \
-{ \
-	unsigned char* emsg = yajl_get_error(parser, 1, chunk, len); \
-	VALUE errobj = rb_exc_new2(c_parse_error, (const char*) emsg); \
-	yajl_free_error(parser, emsg); \
-	rb_exc_raise(errobj); \
-}
-
 static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 {
 	yajl_status rc;
-	int i;
 	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
-	VALUE rbuf, proc;
-	const char* chunk = NULL;
-	unsigned int len = 0;
+	int i;
 
-	rb_scan_args(argc, argv, "00&", &proc);
+	rb_scan_args(argc, argv, "00&", &p->parser_cb);
 	RETURN_ENUMERATOR(self, argc, argv);
 
-	rbuf = rb_str_new(NULL, 0);
 	p->path = rb_ary_new();
 	p->path_str = rb_str_new("", 0);
-	while (rb_funcall(p->input, id_read, 2, p->rbufsize, rbuf) != Qnil) {
-		chunk = RSTRING_PTR(rbuf);
-		len = RSTRING_LEN(rbuf);
+	p->chunk = Qnil;
 
-		p->events = rb_ary_new();
-		rc = yajl_parse(p->handle, (const unsigned char*)chunk, len);
-		if (rc == yajl_status_error) {
-			RERAISE_PARSER_ERROR(p->handle, (const unsigned char*)chunk, len);
-		}
-		for (i=0; i<RARRAY_LEN(p->events); i++) {
-			rb_funcall(proc, id_call, 1, RARRAY_PTR(p->events)[i]);
+	if (rb_respond_to(p->input, id_perform)) {
+		rb_funcall(p->input, id_perform, 0);
+	} else {
+		p->chunk = rb_str_new(NULL, 0);
+		while (rb_funcall(p->input, id_read, 2, p->rbufsize, p->chunk) != Qnil) {
+			rb_yaji_parser_parse_chunk(p->chunk, self);
 		}
 	}
 
 	p->events = rb_ary_new();
 	rc = yajl_parse_complete(p->handle);
 	if (rc == yajl_status_insufficient_data || rc == yajl_status_error) {
-		RERAISE_PARSER_ERROR(p->handle, (const unsigned char*)chunk, len);
+		RERAISE_PARSER_ERROR(p);
 	}
 	for (i=0; i<RARRAY_LEN(p->events); i++) {
-		rb_funcall(proc, id_call, 1, RARRAY_PTR(p->events)[i]);
+		rb_funcall(p->parser_cb, id_call, 1, RARRAY_PTR(p->events)[i]);
 	}
 
 	return Qnil;
@@ -326,6 +348,8 @@ static void rb_yaji_parser_mark(void *parser)
 		rb_gc_mark(p->events);
 		rb_gc_mark(p->path);
 		rb_gc_mark(p->path_str);
+		rb_gc_mark(p->parser_cb);
+		rb_gc_mark(p->chunk);
 	}
 }
 
@@ -345,7 +369,9 @@ void Init_parser_ext() {
 	id_call = rb_intern("call");
 	id_read = rb_intern("read");
 	id_parse = rb_intern("parse");
-	id_rewind = rb_intern("rewind");
+	id_perform = rb_intern("perform");
+	id_on_body = rb_intern("on_body");
+	id_bytesize = rb_intern("bytesize");
 
 	sym_allow_comments = ID2SYM(rb_intern("allow_comments"));
 	sym_check_utf8 = ID2SYM(rb_intern("check_utf8"));
