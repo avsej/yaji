@@ -7,7 +7,6 @@ end
 
 Rake::ExtensionTask.new("parser_ext", gemspec) do |ext|
   ext.ext_dir = File.join('ext', 'yaji')
-  ext.lib_dir = File.join('lib', 'yaji')
 
   # clean compiled extension
   CLEAN.include "#{ext.lib_dir}/*.#{RbConfig::CONFIG['DLEXT']}"

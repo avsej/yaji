@@ -18,7 +18,7 @@
 #
 
 require "yaji/version"
-require "yaji/parser_ext"
+require "parser_ext"
 
 module YAJI
 end
