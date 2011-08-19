@@ -3,6 +3,18 @@ Yet another JSON iterator
 
 YAJI is a ruby wrapper to YAJL providing iterator interface to streaming JSON parser.
 
+INSTALL
+-------
+
+This gem depend on [yajl][1]. So you need development headers installed
+on your system to build this gem. For Debian GNU/Linux family it will be something like:
+
+    sudo apt-get install libyajl-dev
+
+Now you ready to install YAJI gem:
+
+    gem install yaji
+
 USAGE
 -----
 
@@ -13,7 +25,7 @@ YAJI::Parser initializer accepts `IO` instance or `String`.
     YAJI::Parser.new('{"foo":"bar"}')
     YAJI::Parser.new(File.open('data.json'))
 
-There is integration with [curb][1], so you can pass `Curl::Easy` instance to
+There is integration with [curb][2], so you can pass `Curl::Easy` instance to
 as input for parser.
 
     require 'curl'
@@ -95,4 +107,5 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[1]: https://rubygems.org/gems/curb
+[1]: http://lloyd.github.com/yajl/
+[2]: https://rubygems.org/gems/curb/
