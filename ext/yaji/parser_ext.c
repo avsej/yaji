@@ -261,8 +261,28 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 	return Qnil;
 }
 
-#define YAJI_STR_START_WITH(str, head) \
-	(RSTRING_LEN(head) <= RSTRING_LEN(str) && memcmp(RSTRING_PTR(head), RSTRING_PTR(str), RSTRING_LEN(head)) == 0)
+static int rb_yaji_str_start_with(VALUE str, VALUE query)
+{
+	int i;
+	const char *ptr = RSTRING_PTR(str);
+	int len = RSTRING_LEN(str);
+	VALUE entry;
+
+	switch(TYPE(query)) {
+	case T_STRING:
+		return RSTRING_LEN(query) <= len && memcmp(RSTRING_PTR(query), ptr, RSTRING_LEN(query)) == 0;
+		break;
+	case T_ARRAY:
+		for (i=0; i<RARRAY_LEN(query); i++) {
+			entry = RARRAY_PTR(query)[i];
+			if (RSTRING_LEN(entry) <= len && memcmp(RSTRING_PTR(entry), ptr, RSTRING_LEN(entry)) == 0) {
+				return 1;
+			}
+		}
+		break;
+	}
+	return 0;
+}
 
 static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 {
@@ -275,7 +295,7 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 	VALUE query = params[2];
 	VALUE last_entry, object, container, key, hash;
 
-	if (NIL_P(query) || YAJI_STR_START_WITH(path, query)) {
+	if (NIL_P(query) || rb_yaji_str_start_with(path, query)) {
 		if (event == sym_hash_key) {
 			rb_ary_push(stack, value);
 		} else if (event == sym_start_hash || event == sym_start_array) {
@@ -319,7 +339,7 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 {
 	VALUE query, proc, params[3];
-	rb_scan_args(argc, argv, "01&", &query, &proc);
+	rb_scan_args(argc, argv, "0*&", &query, &proc);
 	RETURN_ENUMERATOR(self, argc, argv);
 	params[0] = proc;	    // callback
 	params[1] = rb_ary_new();   // stack

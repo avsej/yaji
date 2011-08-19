@@ -6,7 +6,7 @@ YAJI is a ruby wrapper to YAJL providing iterator interface to streaming JSON pa
 INSTALL
 -------
 
-This gem depend on [yajl][1]. So you need development headers installed
+This gem depends on [yajl][1]. So you need development headers installed
 on your system to build this gem. For Debian GNU/Linux family it will be something like:
 
     sudo apt-get install libyajl-dev
@@ -87,7 +87,20 @@ code above will print two lines:
     {"id"=>2}
 
 You can use this iterator when the data is huge and you'd like to allow
-GC to collect yielded object before parser finish its job.
+GC to collect yielded object before parser finish its job. You can also
+specify additional selector if you need to fetch some sibling nodes,
+e.g. `"size"` from previous example:
+
+    parser = YAJI::Parser.new('{"size":2,"items":[{"id":1}, {"id":2}]}')
+    parser.each("size", "items/") do |obj|
+      puts obj.inspect
+    end
+
+it yields
+
+    2
+    {"id"=>1}
+    {"id"=>2}
 
 
 LICENSE

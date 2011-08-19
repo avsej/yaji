@@ -145,6 +145,26 @@ class TestParser < MiniTest::Unit::TestCase
     assert expected, object
   end
 
+  def test_it_allow_several_selectors
+    parser = YAJI::Parser.new(toys_json_str)
+    objects = []
+    parser.each("total_rows", "rows/") do |o|
+      objects << o
+    end
+    expected = [2,
+                {
+                  "id" => "buzz",
+                  "props" => { "humanoid"=> true, "armed"=> true },
+                  "movies" => [1,2,3]
+                },
+                {
+                  "id" => "barbie",
+                  "props" => { "humanoid"=> true, "armed"=> false },
+                  "movies" => [2,3]
+                }]
+    assert expected, objects
+  end
+
   protected
 
   def toys_json_str
