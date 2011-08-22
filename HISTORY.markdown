@@ -1,3 +1,7 @@
+=== 0.0.5 / 2011-08-22
+
+* Don't fail on empty input
+
 === 0.0.4 / 2011-08-22
 
 * Pass multiple filter explicitly as an array
