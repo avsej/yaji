@@ -165,6 +165,13 @@ class TestParser < MiniTest::Unit::TestCase
     assert_equal expected, objects
   end
 
+  def test_it_doesnt_raise_exception_on_empty_input
+    YAJI::Parser.new("").parse
+    YAJI::Parser.new("  ").parse
+    YAJI::Parser.new("\n").parse
+    YAJI::Parser.new(" \n\n ").parse
+  end
+
   protected
 
   def toys_json_str

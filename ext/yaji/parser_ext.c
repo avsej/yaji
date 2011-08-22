@@ -227,6 +227,7 @@ static VALUE rb_yaji_parser_init(int argc, VALUE *argv, VALUE self)
 	return self;
 }
 
+
 static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 {
 	yajl_status rc;
@@ -251,7 +252,9 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 
 	p->events = rb_ary_new();
 	rc = yajl_parse_complete(p->handle);
-	if (rc == yajl_status_insufficient_data || rc == yajl_status_error) {
+
+	if (rc == yajl_status_error ||
+			(rc == yajl_status_insufficient_data && RSTRING_LEN(rb_funcall(p->chunk, id_strip, 0)) != 0)) {
 		RERAISE_PARSER_ERROR(p);
 	}
 	for (i=0; i<RARRAY_LEN(p->events); i++) {
@@ -389,6 +392,7 @@ void Init_parser_ext() {
 	id_call = rb_intern("call");
 	id_read = rb_intern("read");
 	id_parse = rb_intern("parse");
+	id_strip = rb_intern("strip");
 	id_perform = rb_intern("perform");
 	id_on_body = rb_intern("on_body");
 	id_bytesize = rb_intern("bytesize");

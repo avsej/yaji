@@ -41,7 +41,7 @@ static rb_encoding *utf8_encoding;
 
 static VALUE m_yaji, c_yaji_parser, c_parse_error, c_stringio;
 
-static ID id_call, id_read, id_parse, id_perform, id_on_body, id_bytesize;
+static ID id_call, id_read, id_parse, id_perform, id_on_body, id_bytesize, id_strip;
 static ID sym_allow_comments, sym_check_utf8, sym_symbolize_keys,
 	  sym_read_buffer_size, sym_null, sym_boolean, sym_number, sym_string,
 	  sym_hash_key, sym_start_hash, sym_end_hash, sym_start_array,
