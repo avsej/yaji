@@ -148,7 +148,7 @@ class TestParser < MiniTest::Unit::TestCase
   def test_it_allow_several_selectors
     parser = YAJI::Parser.new(toys_json_str)
     objects = []
-    parser.each("total_rows", "rows/") do |o|
+    parser.each(["total_rows", "rows/"]) do |o|
       objects << o
     end
     expected = [2,

@@ -92,7 +92,7 @@ specify additional selector if you need to fetch some sibling nodes,
 e.g. `"size"` from previous example:
 
     parser = YAJI::Parser.new('{"size":2,"items":[{"id":1}, {"id":2}]}')
-    parser.each("size", "items/") do |obj|
+    parser.each(["size", "items/"]) do |obj|
       puts obj.inspect
     end
 

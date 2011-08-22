@@ -339,7 +339,7 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 {
 	VALUE query, proc, params[3];
-	rb_scan_args(argc, argv, "0*&", &query, &proc);
+	rb_scan_args(argc, argv, "01&", &query, &proc);
 	RETURN_ENUMERATOR(self, argc, argv);
 	params[0] = proc;	    // callback
 	params[1] = rb_ary_new();   // stack
