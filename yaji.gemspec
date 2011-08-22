@@ -23,4 +23,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rake-compiler'
   s.add_development_dependency 'minitest'
   s.add_development_dependency 'curb'
+  s.add_development_dependency RUBY_VERSION =~ /^1\.9/ ? 'ruby-debug19' : 'ruby-debug'
 end

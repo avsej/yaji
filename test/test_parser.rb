@@ -96,7 +96,7 @@ class TestParser < MiniTest::Unit::TestCase
                      "movies" => [2,3]
                    }
                  ]}]
-    assert expected, objects
+    assert_equal expected, objects
   end
 
   def test_it_yields_whole_array
@@ -115,7 +115,7 @@ class TestParser < MiniTest::Unit::TestCase
                    "props" => { "humanoid"=> true, "armed"=> false },
                    "movies" => [2,3]
                  }]]
-    assert expected, objects
+    assert_equal expected, objects
   end
 
   def test_it_yeilds_array_contents_row_by_row
@@ -134,7 +134,7 @@ class TestParser < MiniTest::Unit::TestCase
                   "props" => { "humanoid"=> true, "armed"=> false },
                   "movies" => [2,3]
                 }]
-    assert expected, objects
+    assert_equal expected, objects
   end
 
   def test_it_could_curb_async_approach
@@ -142,7 +142,7 @@ class TestParser < MiniTest::Unit::TestCase
     parser = YAJI::Parser.new(curl)
     object = parser.each.to_a.first
     expected = {"foo"=>"bar", "baz"=>{"nums"=>[42, 3.1415]}}
-    assert expected, object
+    assert_equal expected, object
   end
 
   def test_it_allow_several_selectors
@@ -162,7 +162,7 @@ class TestParser < MiniTest::Unit::TestCase
                   "props" => { "humanoid"=> true, "armed"=> false },
                   "movies" => [2,3]
                 }]
-    assert expected, objects
+    assert_equal expected, objects
   end
 
   protected
