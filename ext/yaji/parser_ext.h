@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-#include <yajl/yajl_parse.h>
+#include "api/yajl_parse.h"
 
 #include <ruby.h>
 
