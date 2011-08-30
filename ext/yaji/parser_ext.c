@@ -22,9 +22,9 @@
 
 #define RB_P(OBJ) \
 	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_funcall(OBJ, rb_intern("object_id"), 0)); \
-	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_str_new_cstr(" ")); \
+	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_str_new2(" ")); \
 	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_funcall(OBJ, rb_intern("class"), 0)); \
-	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_str_new_cstr(" ")); \
+	rb_funcall(rb_stderr, rb_intern("print"), 1, rb_str_new2(" ")); \
 	rb_funcall(rb_stderr, rb_intern("puts"), 1, rb_funcall(OBJ, rb_intern("inspect"), 0));
 
 #define RERAISE_PARSER_ERROR(parser) \
@@ -104,12 +104,12 @@ static int yaji_hash_key(void *ctx, const unsigned char *val, unsigned int len)
 	} else {
 		p->key_in_use = 1;
 	}
-	p->path_str = rb_ary_join(p->path, rb_str_new_cstr("/"));
+	p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
 	rb_str_freeze(p->path_str);
 	rv = rb_ary_new3(3, p->path_str, sym_hash_key, key);
 	rb_ary_push(p->events, rv);
 	rb_ary_push(p->path, key);
-	p->path_str = rb_ary_join(p->path, rb_str_new_cstr("/"));
+	p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
 	rb_str_freeze(p->path_str);
 	return STATUS_CONTINUE;
 }
@@ -127,7 +127,7 @@ static int yaji_end_hash(void *ctx)
 {
 	yaji_parser* p = (yaji_parser*) DATA_PTR(ctx);
 	rb_ary_pop(p->path);
-	p->path_str = rb_ary_join(p->path, rb_str_new_cstr("/"));
+	p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
 	VALUE rv = rb_ary_new3(3, p->path_str, sym_end_hash, Qnil);
 	rb_ary_push(p->events, rv);
 	return STATUS_CONTINUE;
@@ -137,8 +137,8 @@ static int yaji_start_array(void *ctx)
 {
 	yaji_parser* p = (yaji_parser*) DATA_PTR(ctx);
 	VALUE rv = rb_ary_new3(3, p->path_str, sym_start_array, Qnil);
-	rb_ary_push(p->path, rb_str_new_cstr(""));
-	p->path_str = rb_ary_join(p->path, rb_str_new_cstr("/"));
+	rb_ary_push(p->path, rb_str_new2(""));
+	p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
 	rb_str_freeze(p->path_str);
 	rb_ary_push(p->events, rv);
 	return STATUS_CONTINUE;
@@ -149,7 +149,7 @@ static int yaji_end_array(void *ctx)
 	yaji_parser* p = (yaji_parser*) DATA_PTR(ctx);
 
 	rb_ary_pop(p->path);
-	p->path_str = rb_ary_join(p->path, rb_str_new_cstr("/"));
+	p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
 
 	VALUE rv = rb_ary_new3(3, p->path_str, sym_end_array, Qnil);
 	rb_ary_push(p->events, rv);
