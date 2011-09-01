@@ -1,3 +1,7 @@
+=== 0.0.9 / 2011-09-01
+
+* Optionally yield path in object iterator
+
 === 0.0.8 / 2011-08-30
 
 * Use rb_str_new2 for backward comatibility with ruby 1.8.x
