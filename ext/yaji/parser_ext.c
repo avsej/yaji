@@ -296,6 +296,7 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 	VALUE proc = params[0];
 	VALUE stack = params[1];
 	VALUE query = params[2];
+	VALUE with_path = params[3];
 	VALUE last_entry, object, container, key, hash;
 
 	if (NIL_P(query) || rb_yaji_str_start_with(path, query)) {
@@ -317,7 +318,11 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 		} else if (event == sym_end_hash || event == sym_end_array) {
 			object = rb_ary_pop(stack);
 			if (RARRAY_LEN(stack) == 0) {
-				rb_funcall(proc, id_call, 1, object);
+				if (with_path == Qnil || with_path == Qfalse) {
+					rb_funcall(proc, id_call, 1, object);
+				} else {
+					rb_funcall(proc, id_call, 1, rb_ary_new3(2, path, object));
+				}
 			}
 		} else {
 			last_entry = rb_ary_entry(stack, -1);
@@ -331,7 +336,11 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 				rb_ary_push(last_entry, value);
 				break;
 			case T_NIL:
-				rb_funcall(proc, id_call, 1, value);
+				if (with_path == Qnil || with_path == Qfalse) {
+					rb_funcall(proc, id_call, 1, value);
+				} else {
+					rb_funcall(proc, id_call, 1, rb_ary_new3(2, path, value));
+				}
 				break;
 			}
 		}
@@ -341,12 +350,18 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 
 static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 {
-	VALUE query, proc, params[3];
-	rb_scan_args(argc, argv, "01&", &query, &proc);
+	VALUE query, proc, options, params[4];
 	RETURN_ENUMERATOR(self, argc, argv);
+	rb_scan_args(argc, argv, "02&", &query, &options, &proc);
 	params[0] = proc;	    // callback
 	params[1] = rb_ary_new();   // stack
 	params[2] = query;
+	if (options != Qnil) {
+		Check_Type(options, T_HASH);
+		params[3] = rb_hash_aref(options, sym_with_path);
+	} else {
+		params[3] = Qnil;
+	}
 	rb_block_call(self, id_parse, 0, NULL, rb_yaji_each_iter, (VALUE)params);
 	return Qnil;
 }
@@ -401,6 +416,7 @@ void Init_parser_ext() {
 	sym_check_utf8 = ID2SYM(rb_intern("check_utf8"));
 	sym_symbolize_keys = ID2SYM(rb_intern("symbolize_keys"));
 	sym_read_buffer_size = ID2SYM(rb_intern("read_buffer_size"));
+	sym_with_path = ID2SYM(rb_intern("with_path"));
 	sym_null = ID2SYM(rb_intern("null"));
 	sym_boolean = ID2SYM(rb_intern("boolean"));
 	sym_number = ID2SYM(rb_intern("number"));

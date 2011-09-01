@@ -165,6 +165,26 @@ class TestParser < MiniTest::Unit::TestCase
     assert_equal expected, objects
   end
 
+  def test_it_optionally_yeilds_object_path
+    parser = YAJI::Parser.new(toys_json_str)
+    objects = []
+    parser.each(["total_rows", "rows/"], :with_path => true) do |o|
+      objects << o
+    end
+    expected = [["total_rows", 2],
+                ["rows/", {
+                  "id" => "buzz",
+                  "props" => { "humanoid"=> true, "armed"=> true },
+                  "movies" => [1,2,3]
+                }],
+                ["rows/", {
+                  "id" => "barbie",
+                  "props" => { "humanoid"=> true, "armed"=> false },
+                  "movies" => [2,3]
+                }]]
+    assert_equal expected, objects
+  end
+
   def test_it_doesnt_raise_exception_on_empty_input
     YAJI::Parser.new("").parse
     YAJI::Parser.new("  ").parse
