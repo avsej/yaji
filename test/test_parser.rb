@@ -234,6 +234,17 @@ class TestParser < MiniTest::Unit::TestCase
     end
   end
 
+  def test_it_skips_empty_chunks
+    generator = Generator.new(['{"total_rows":', '0,"offset":0,"rows":[]', '}', '', nil])
+    iter = YAJI::Parser.new(generator).each(["total_rows", "rows/", "errors/"], :with_path => true)
+    begin
+      loop do
+        iter.next
+      end
+    rescue StopIteration
+    end
+  end
+
   protected
 
   def toys_json_str

@@ -160,10 +160,14 @@ static VALUE rb_yaji_parser_parse_chunk(VALUE chunk, VALUE self)
 {
 	yajl_status rc;
 	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
-	const char* buf = RSTRING_PTR(chunk);
-	unsigned int len = RSTRING_LEN(chunk);
+	const char* buf;
+	unsigned int len;
 	int i;
 
+	if (NIL_P(chunk) || (len = RSTRING_LEN(chunk)) == 0) {
+		return INT2FIX(0);
+	}
+	buf = RSTRING_PTR(chunk);
 	p->events = rb_ary_new();
 	p->chunk = chunk;
 	rc = yajl_parse(p->handle, (const unsigned char*)buf, len);
