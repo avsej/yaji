@@ -2,6 +2,7 @@ Yet another JSON iterator
 =========================
 
 YAJI is a ruby wrapper to YAJL providing iterator interface to streaming JSON parser.
+[![Build Status](https://secure.travis-ci.org/avsej/yaji.png)](http://travis-ci.org/avsej/yaji)
 
 INSTALL
 -------
