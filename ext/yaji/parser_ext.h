@@ -57,7 +57,7 @@ static int yaji_end_hash(void *ctx);
 static int yaji_start_array(void *ctx);
 static int yaji_end_array(void *ctx);
 
-static yajl_callbacks callbacks = {
+static yajl_callbacks yaji_callbacks = {
 	yaji_null,
 	yaji_boolean,
 	NULL,

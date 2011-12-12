@@ -221,7 +221,7 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 	} else {
 		Check_Type(p->rbufsize, T_FIXNUM);
 	}
-	p->handle = yajl_alloc(&callbacks, &p->config, NULL, (void *)obj);
+	p->handle = yajl_alloc(&yaji_callbacks, &p->config, NULL, (void *)obj);
 	rb_obj_call_init(obj, 0, 0);
 	return obj;
 }
