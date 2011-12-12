@@ -4,6 +4,33 @@ require 'curb'
 
 class TestParser < MiniTest::Unit::TestCase
 
+  class Generator
+    def initialize(data, options = {})
+      @callback = nil
+      @io = StringIO.new(data)
+      @options = {:chunk_size => 10}.merge(options)
+    end
+
+    def on_body
+      old = @callback
+      if block_given?
+        @callback = Proc.new
+      end
+      old
+    end
+
+    def perform
+      size = @options[:chunk_size]
+      while chunk = @io.read(size)
+        @callback.call(chunk) if @callback
+      end
+    end
+
+    def rewind
+      @io.rewind
+    end
+  end
+
   def test_it_generates_events
     events = []
     parser = YAJI::Parser.new(toys_json_str)
@@ -190,6 +217,17 @@ class TestParser < MiniTest::Unit::TestCase
     YAJI::Parser.new("  ").parse
     YAJI::Parser.new("\n").parse
     YAJI::Parser.new(" \n\n ").parse
+  end
+
+  def test_it_parses_chunked_data
+    generator = Generator.new('{"total_rows":0,"offset":0,"rows":[]}')
+    iter = YAJI::Parser.new(generator).each(["total_rows", "rows/", "errors/"], :with_path => true)
+    begin
+      loop do
+        iter.next
+      end
+    rescue StopIteration
+    end
   end
 
   protected
