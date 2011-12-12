@@ -1,3 +1,7 @@
+=== 0.1.0 / 2011-12-12
+
+* Skip empty and nil chunks
+
 === 0.0.9 / 2011-09-01
 
 * Optionally yield path in object iterator
