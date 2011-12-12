@@ -7,8 +7,14 @@ class TestParser < MiniTest::Unit::TestCase
   class Generator
     def initialize(data, options = {})
       @callback = nil
-      @io = StringIO.new(data)
       @options = {:chunk_size => 10}.merge(options)
+      @chunks = case data
+                when Array
+                  data
+                when String
+                  count = (data.bytesize / @options[:chunk_size].to_f).ceil
+                  data.unpack("a#{@options[:chunk_size]}" * count)
+                end
     end
 
     def on_body
@@ -21,13 +27,11 @@ class TestParser < MiniTest::Unit::TestCase
 
     def perform
       size = @options[:chunk_size]
-      while chunk = @io.read(size)
-        @callback.call(chunk) if @callback
+      if @callback
+        @chunks.each do |chunk|
+          @callback.call(chunk)
+        end
       end
-    end
-
-    def rewind
-      @io.rewind
     end
   end
 
@@ -220,7 +224,7 @@ class TestParser < MiniTest::Unit::TestCase
   end
 
   def test_it_parses_chunked_data
-    generator = Generator.new('{"total_rows":0,"offset":0,"rows":[]}')
+    generator = Generator.new(['{"total_rows":', '0,"offset":0,"rows":[]', '}'])
     iter = YAJI::Parser.new(generator).each(["total_rows", "rows/", "errors/"], :with_path => true)
     begin
       loop do
