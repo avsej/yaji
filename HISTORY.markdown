@@ -1,3 +1,7 @@
+=== 0.1.2 / 2011-12-13
+
+* Finish yajl API hiding
+
 === 0.1.1 / 2011-12-13
 
 * Do not export yajl functions
