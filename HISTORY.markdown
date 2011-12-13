@@ -1,3 +1,7 @@
+=== 0.1.1 / 2011-12-13
+
+* Do not export yajl functions
+
 === 0.1.0 / 2011-12-12
 
 * Skip empty and nil chunks
