@@ -242,6 +242,7 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 	RETURN_ENUMERATOR(self, argc, argv);
 
 	p->path = rb_ary_new();
+	rb_ary_push(p->path, rb_str_new("", 0));
 	p->path_str = rb_str_new("", 0);
 	p->chunk = Qnil;
 
