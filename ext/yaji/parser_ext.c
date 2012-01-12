@@ -265,6 +265,9 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 		rb_funcall(p->parser_cb, id_call, 1, RARRAY_PTR(p->events)[i]);
 	}
 
+	if (rb_respond_to(p->input, id_close)) {
+		rb_funcall(p->input, id_close, 0);
+	}
 	return Qnil;
 }
 
@@ -409,6 +412,7 @@ void Init_parser_ext() {
 	rb_define_method(c_yaji_parser, "each", rb_yaji_parser_each, -1);
 
 	id_call = rb_intern("call");
+	id_close = rb_intern("close");
 	id_read = rb_intern("read");
 	id_parse = rb_intern("parse");
 	id_strip = rb_intern("strip");
