@@ -1,3 +1,8 @@
+=== 0.2.0 / 2012-01-12
+
+* Fix root element (broken backward compatibility, see tests)
+* Close input when work is done
+
 === 0.1.2 / 2011-12-13
 
 * Finish yajl API hiding
