@@ -1,3 +1,9 @@
+=== 0.2.1 / 2012-03-14
+
+* Revert "Close input after work"
+* Update rake dependency
+* Check chunk for nil before stripping
+
 === 0.2.0 / 2012-01-12
 
 * Fix root element (broken backward compatibility, see tests)
