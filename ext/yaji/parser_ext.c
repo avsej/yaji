@@ -259,7 +259,8 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 	rc = yajl_parse_complete(p->handle);
 
 	if (rc == yajl_status_error ||
-			(rc == yajl_status_insufficient_data && RSTRING_LEN(rb_funcall(p->chunk, id_strip, 0)) != 0)) {
+			(rc == yajl_status_insufficient_data && p->chunk != Qnil &&
+			 RSTRING_LEN(rb_funcall(p->chunk, id_strip, 0)) != 0)) {
 		RERAISE_PARSER_ERROR(p);
 	}
 	for (i=0; i<RARRAY_LEN(p->events); i++) {
