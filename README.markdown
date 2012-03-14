@@ -78,7 +78,7 @@ will print only one line:
 But it might be more useful to yield items from inner array:
 
     parser = YAJI::Parser.new('{"size":2,"items":[{"id":1}, {"id":2}]}')
-    parser.each("items/") do |obj|
+    parser.each("/items/") do |obj|
       puts obj.inspect
     end
 
@@ -93,7 +93,7 @@ specify additional selector if you need to fetch some sibling nodes,
 e.g. `"size"` from previous example:
 
     parser = YAJI::Parser.new('{"size":2,"items":[{"id":1}, {"id":2}]}')
-    parser.each(["size", "items/"]) do |obj|
+    parser.each(["size", "/items/"]) do |obj|
       puts obj.inspect
     end
 
@@ -103,6 +103,29 @@ it yields
     {"id"=>1}
     {"id"=>2}
 
+Parse objects in top-level array. Without any parameters parser will
+produce single object for the input:
+
+    parser = YAJI::Parser.new('[{"id":1}, {"id":2}]')
+    parser.each do |obj|
+      puts obj.inspect
+    end
+
+Output:
+
+    [{"id"=>1}, {"id"=>2}]
+
+But you and interate over inner objects passing `"/"` as the argument:
+
+    parser = YAJI::Parser.new('[{"id":1}, {"id":2}]')
+    parser.each("/") do |obj|
+      puts obj.inspect
+    end
+
+Output:
+
+    {"id"=>1}
+    {"id"=>2}
 
 LICENSE
 -------
