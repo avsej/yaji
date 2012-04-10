@@ -2,5 +2,6 @@
 *.so
 .bundle
 Gemfile.lock
+lib/parser_ext.rb
 pkg/*
 tmp/*
