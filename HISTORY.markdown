@@ -1,3 +1,11 @@
+=== 0.2.3 / 2012-04-10
+
+* Add build for Windows
+
+=== 0.2.2 / 2012-03-14
+
+* Fix the README file
+
 === 0.2.1 / 2012-03-14
 
 * Revert "Close input after work"
