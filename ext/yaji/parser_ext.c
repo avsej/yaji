@@ -190,6 +190,8 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 	p->config.allowComments = 1;
 	p->config.checkUTF8 = 1;
 	p->symbolize_keys = 0;
+	p->with_path = 0;
+	p->filter = Qnil;
 	p->rbufsize = Qnil;
 	p->input = Qnil;
 	p->parser_cb = Qnil;
@@ -215,6 +217,10 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 			p->symbolize_keys = 1;
 		}
 		p->rbufsize = rb_hash_aref(opts, sym_read_buffer_size);
+		if (rb_hash_aref(opts, sym_with_path) == Qtrue) {
+			p->with_path = 1;
+		}
+		p->filter = rb_hash_aref(opts, sym_filter);
 	}
 	if (NIL_P(p->rbufsize)) {
 		p->rbufsize = INT2FIX(READ_BUFSIZE);
@@ -229,6 +235,8 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 static VALUE rb_yaji_parser_init(int argc, VALUE *argv, VALUE self)
 {
 	return self;
+	(void)argc;
+	(void)argv;
 }
 
 
@@ -270,20 +278,20 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 	return Qnil;
 }
 
-static int rb_yaji_str_start_with(VALUE str, VALUE query)
+static int rb_yaji_str_start_with(VALUE str, VALUE filter)
 {
 	int i;
 	const char *ptr = RSTRING_PTR(str);
 	int len = RSTRING_LEN(str);
 	VALUE entry;
 
-	switch(TYPE(query)) {
+	switch(TYPE(filter)) {
 	case T_STRING:
-		return RSTRING_LEN(query) <= len && memcmp(RSTRING_PTR(query), ptr, RSTRING_LEN(query)) == 0;
+		return RSTRING_LEN(filter) <= len && memcmp(RSTRING_PTR(filter), ptr, RSTRING_LEN(filter)) == 0;
 		break;
 	case T_ARRAY:
-		for (i=0; i<RARRAY_LEN(query); i++) {
-			entry = RARRAY_PTR(query)[i];
+		for (i=0; i<RARRAY_LEN(filter); i++) {
+			entry = RARRAY_PTR(filter)[i];
 			if (RSTRING_LEN(entry) <= len && memcmp(RSTRING_PTR(entry), ptr, RSTRING_LEN(entry)) == 0) {
 				return 1;
 			}
@@ -301,11 +309,11 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 	VALUE value = rb_ary_shift(chunk);
 	VALUE proc = params[0];
 	VALUE stack = params[1];
-	VALUE query = params[2];
+	VALUE filter = params[2];
 	VALUE with_path = params[3];
 	VALUE last_entry, object, container, key, hash;
 
-	if (NIL_P(query) || rb_yaji_str_start_with(path, query)) {
+	if (NIL_P(filter) || rb_yaji_str_start_with(path, filter)) {
 		if (event == sym_hash_key) {
 			rb_ary_push(stack, value);
 		} else if (event == sym_start_hash || event == sym_start_array) {
@@ -356,17 +364,25 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 
 static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 {
-	VALUE query, proc, options, params[4];
+	VALUE filter, proc, options, params[4];
+	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
 	RETURN_ENUMERATOR(self, argc, argv);
-	rb_scan_args(argc, argv, "02&", &query, &options, &proc);
+	rb_scan_args(argc, argv, "02&", &filter, &options, &proc);
 	params[0] = proc;	    // callback
 	params[1] = rb_ary_new();   // stack
-	params[2] = query;
-	if (options != Qnil) {
-		Check_Type(options, T_HASH);
-		params[3] = rb_hash_aref(options, sym_with_path);
+	if (NIL_P(filter)) {
+		params[2] = p->filter;
 	} else {
-		params[3] = Qnil;
+		params[2] = filter;
+	}
+	params[3] = p->with_path ? Qtrue : Qfalse;
+	if (options != Qnil) {
+		VALUE arg;
+		Check_Type(options, T_HASH);
+		arg = rb_hash_aref(options, sym_with_path);
+		if (!NIL_P(arg)) {
+			params[3] = arg;
+		}
 	}
 	rb_block_call(self, id_parse, 0, NULL, rb_yaji_each_iter, (VALUE)params);
 	return Qnil;
@@ -423,6 +439,7 @@ void Init_parser_ext() {
 	sym_symbolize_keys = ID2SYM(rb_intern("symbolize_keys"));
 	sym_read_buffer_size = ID2SYM(rb_intern("read_buffer_size"));
 	sym_with_path = ID2SYM(rb_intern("with_path"));
+	sym_filter = ID2SYM(rb_intern("filter"));
 	sym_null = ID2SYM(rb_intern("null"));
 	sym_boolean = ID2SYM(rb_intern("boolean"));
 	sym_number = ID2SYM(rb_intern("number"));

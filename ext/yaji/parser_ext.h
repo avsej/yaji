@@ -45,7 +45,7 @@ static ID id_call, id_read, id_parse, id_perform, id_on_body, id_bytesize, id_st
 static ID sym_allow_comments, sym_check_utf8, sym_symbolize_keys, sym_with_path,
 	  sym_read_buffer_size, sym_null, sym_boolean, sym_number, sym_string,
 	  sym_hash_key, sym_start_hash, sym_end_hash, sym_start_array,
-	  sym_end_array;
+	  sym_end_array, sym_filter;
 
 static int yaji_null(void *ctx);
 static int yaji_boolean(void *ctx, int val);
@@ -74,6 +74,7 @@ static yajl_callbacks yaji_callbacks = {
 typedef struct {
 	int symbolize_keys;
 	int key_in_use;
+	int with_path;
 	VALUE input;
 	VALUE rbufsize;
 	VALUE events;
@@ -81,6 +82,7 @@ typedef struct {
 	VALUE path_str;
 	VALUE parser_cb;
 	VALUE chunk;
+	VALUE filter;
 	yajl_handle handle;
 	yajl_parser_config config;
 } yaji_parser;
