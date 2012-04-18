@@ -1,3 +1,8 @@
+=== 0.3.0 / 2012-04-18
+
+* Allow to specify filter at parser initialization
+* Implement feeding of the input on the fly
+
 === 0.2.3 / 2012-04-10
 
 * Add build for Windows
