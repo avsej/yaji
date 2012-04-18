@@ -156,6 +156,8 @@ static int yaji_end_array(void *ctx)
 	return STATUS_CONTINUE;
 }
 
+static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p);
+
 static VALUE rb_yaji_parser_parse_chunk(VALUE chunk, VALUE self)
 {
 	yajl_status rc;
@@ -175,7 +177,16 @@ static VALUE rb_yaji_parser_parse_chunk(VALUE chunk, VALUE self)
 		RERAISE_PARSER_ERROR(p);
 	}
 	for (i=0; i<RARRAY_LEN(p->events); i++) {
-		rb_funcall(p->parser_cb, id_call, 1, RARRAY_PTR(p->events)[i]);
+		if (NIL_P(p->input)) {
+			VALUE params[4];
+			params[0] = p->on_object_cb;
+			params[1] = p->object_stack;
+			params[2] = p->filter;
+			params[3] = p->with_path ? Qtrue : Qfalse;
+			rb_yaji_each_iter(RARRAY_PTR(p->events)[i], params);
+		} else {
+			rb_funcall(p->parser_cb, id_call, 1, RARRAY_PTR(p->events)[i]);
+		}
 	}
 	return rb_funcall(chunk, id_bytesize, 0, NULL);
 }
@@ -195,15 +206,22 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 	p->rbufsize = Qnil;
 	p->input = Qnil;
 	p->parser_cb = Qnil;
+	p->on_object_cb = Qnil;
 
-	rb_scan_args(argc, argv, "11", &p->input, &opts);
-	if (TYPE(p->input) == T_STRING) {
-		p->input = rb_class_new_instance(1, &p->input, c_stringio);
-	} else if (rb_respond_to(p->input, id_perform) && rb_respond_to(p->input, id_on_body)) {
-		rb_block_call(p->input, id_on_body, 0, NULL, rb_yaji_parser_parse_chunk, obj);
-	} else if (!rb_respond_to(p->input, id_read)) {
-		rb_raise(c_parse_error, "input must be a String or IO or "
-				"something responding to #perform and #on_body e.g. Curl::Easy");
+	rb_scan_args(argc, argv, "02", &p->input, &opts);
+	if (NIL_P(opts) && TYPE(p->input) == T_HASH) {
+		opts = p->input;
+		p->input = Qnil;
+	}
+	if (!NIL_P(p->input)) {
+		if (TYPE(p->input) == T_STRING) {
+			p->input = rb_class_new_instance(1, &p->input, c_stringio);
+		} else if (rb_respond_to(p->input, id_perform) && rb_respond_to(p->input, id_on_body)) {
+			rb_block_call(p->input, id_on_body, 0, NULL, rb_yaji_parser_parse_chunk, obj);
+		} else if (!rb_respond_to(p->input, id_read)) {
+			rb_raise(c_parse_error, "input must be a String or IO or "
+				 "something responding to #perform and #on_body e.g. Curl::Easy");
+		}
 	}
 	if (!NIL_P(opts)) {
 		Check_Type(opts, T_HASH);
@@ -227,6 +245,10 @@ static VALUE rb_yaji_parser_new(int argc, VALUE *argv, VALUE klass)
 	} else {
 		Check_Type(p->rbufsize, T_FIXNUM);
 	}
+	p->object_stack = rb_ary_new();
+	p->path = rb_ary_new();
+	rb_ary_push(p->path, rb_str_new("", 0));
+	p->path_str = rb_str_new("", 0);
 	p->handle = yajl_alloc(&yaji_callbacks, &p->config, NULL, (void *)obj);
 	rb_obj_call_init(obj, 0, 0);
 	return obj;
@@ -239,6 +261,18 @@ static VALUE rb_yaji_parser_init(int argc, VALUE *argv, VALUE self)
 	(void)argv;
 }
 
+static VALUE rb_yaji_parser_write(VALUE self, VALUE val)
+{
+	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
+
+	if (NIL_P(p->on_object_cb)) {
+		rb_raise(rb_eArgError, "#on_object callback required");
+	}
+	if (!NIL_P(val)) {
+		Check_Type(val, T_STRING);
+	}
+	return rb_yaji_parser_parse_chunk(val, self);
+}
 
 static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 {
@@ -246,12 +280,12 @@ static VALUE rb_yaji_parser_parse(int argc, VALUE* argv, VALUE self)
 	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
 	int i;
 
+	if (NIL_P(p->input)) {
+		rb_raise(rb_eArgError, "input object required to use #parse method");
+	}
 	rb_scan_args(argc, argv, "00&", &p->parser_cb);
 	RETURN_ENUMERATOR(self, argc, argv);
 
-	p->path = rb_ary_new();
-	rb_ary_push(p->path, rb_str_new("", 0));
-	p->path_str = rb_str_new("", 0);
 	p->chunk = Qnil;
 
 	if (rb_respond_to(p->input, id_perform)) {
@@ -282,7 +316,7 @@ static int rb_yaji_str_start_with(VALUE str, VALUE filter)
 {
 	int i;
 	const char *ptr = RSTRING_PTR(str);
-	int len = RSTRING_LEN(str);
+	long len = RSTRING_LEN(str);
 	VALUE entry;
 
 	switch(TYPE(filter)) {
@@ -366,6 +400,10 @@ static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 {
 	VALUE filter, proc, options, params[4];
 	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
+
+	if (NIL_P(p->input)) {
+		rb_raise(rb_eArgError, "input object required to use #each method");
+	}
 	RETURN_ENUMERATOR(self, argc, argv);
 	rb_scan_args(argc, argv, "02&", &filter, &options, &proc);
 	params[0] = proc;	    // callback
@@ -399,6 +437,16 @@ static void rb_yaji_parser_free(void *parser)
 	}
 }
 
+static VALUE rb_yaji_parser_on_object(VALUE self)
+{
+	yaji_parser *p = DATA_PTR(self);
+
+	if (rb_block_given_p()) {
+		p->on_object_cb = rb_block_proc();
+	}
+	return p->on_object_cb;
+}
+
 static void rb_yaji_parser_mark(void *parser)
 {
 	yaji_parser* p = parser;
@@ -425,6 +473,9 @@ void Init_parser_ext() {
 	rb_define_method(c_yaji_parser, "initialize", rb_yaji_parser_init, -1);
 	rb_define_method(c_yaji_parser, "parse", rb_yaji_parser_parse, -1);
 	rb_define_method(c_yaji_parser, "each", rb_yaji_parser_each, -1);
+	rb_define_method(c_yaji_parser, "on_object", rb_yaji_parser_on_object, 0);
+	rb_define_method(c_yaji_parser, "write", rb_yaji_parser_write, 1);
+	rb_define_alias(c_yaji_parser, "<<", "write");
 
 	id_call = rb_intern("call");
 	id_read = rb_intern("read");

@@ -83,6 +83,8 @@ typedef struct {
 	VALUE parser_cb;
 	VALUE chunk;
 	VALUE filter;
+	VALUE on_object_cb;
+	VALUE object_stack;
 	yajl_handle handle;
 	yajl_parser_config config;
 } yaji_parser;

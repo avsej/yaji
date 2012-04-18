@@ -245,9 +245,82 @@ class TestParser < MiniTest::Unit::TestCase
     YAJI::Parser.new(" \n\n ").parse
   end
 
+  def test_it_allows_to_create_parser_without_input
+    YAJI::Parser.new
+    YAJI::Parser.new(:filter => 'test')
+    YAJI::Parser.new(:with_path => true)
+  end
+
+  def test_it_raises_argument_error_for_parser_without_input
+    parser = YAJI::Parser.new
+    assert_raises(ArgumentError) do
+      parser.parse
+    end
+    assert_raises(ArgumentError) do
+      parser.each{|x| }
+    end
+  end
+
+  def test_it_raises_argument_error_on_write_without_callback_set_up
+    parser = YAJI::Parser.new
+    assert_raises(ArgumentError) do
+      parser.write('{"hello":"world"}')
+    end
+  end
+
+  def test_it_allows_to_feed_the_data_on_the_fly
+    parser = YAJI::Parser.new(:filter => '/rows/')
+
+    objects = []
+    parser.on_object do |obj|
+      objects << obj
+    end
+
+    parser.write(<<-JSON)
+      {
+        "total_rows": 2,
+        "rows": [
+          {
+    JSON
+    parser.write(<<-JSON)
+            "id": "buzz",
+            "props": {
+              "humanoid": true,
+              "armed": true
+            },
+            "movies": [1,2,3]
+          },
+    JSON
+    data = <<-JSON
+          {
+            "id": "barbie",
+            "props": {
+              "humanoid": true,
+              "armed": false
+            },
+            "movies": [2,3]
+          }
+        ]
+      }
+    JSON
+    parser << data
+
+    expected = [{
+                  "id" => "buzz",
+                  "props" => { "humanoid"=> true, "armed"=> true },
+                  "movies" => [1,2,3]
+                },
+                {
+                  "id" => "barbie",
+                  "props" => { "humanoid"=> true, "armed"=> false },
+                  "movies" => [2,3]
+                }]
+    assert_equal expected, objects
+  end
+
   def test_it_parses_chunked_data
     generator = Generator.new(['{"total_rows":', '0,"offset":0,"rows":[]', '}'])
-    iter = YAJI::Parser.new(generator).each(["total_rows", "rows/", "errors/"], :with_path => true)
+    iter = YAJI::Parser.new(generator).each(["total_rows", "/rows/", "/errors/"], :with_path => true)
     begin
       loop do
         iter.next
@@ -258,7 +331,7 @@ class TestParser < MiniTest::Unit::TestCase
 
   def test_it_skips_empty_chunks
     generator = Generator.new(['{"total_rows":', '0,"offset":0,"rows":[]', '}', '', nil])
-    iter = YAJI::Parser.new(generator).each(["total_rows", "rows/", "errors/"], :with_path => true)
+    iter = YAJI::Parser.new(generator).each(["total_rows", "/rows/", "/errors/"], :with_path => true)
     begin
       loop do
         iter.next
