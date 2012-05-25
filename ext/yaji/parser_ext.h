@@ -85,6 +85,9 @@ typedef struct {
 	VALUE filter;
 	VALUE on_object_cb;
 	VALUE object_stack;
+	VALUE effective_proc;
+	VALUE effective_filter;
+	VALUE effective_with_path;
 	yajl_handle handle;
 	yajl_parser_config config;
 } yaji_parser;

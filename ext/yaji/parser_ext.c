@@ -156,7 +156,7 @@ static int yaji_end_array(void *ctx)
 	return STATUS_CONTINUE;
 }
 
-static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p);
+static VALUE rb_yaji_each_iter(VALUE chunk, VALUE parser);
 
 static VALUE rb_yaji_parser_parse_chunk(VALUE chunk, VALUE self)
 {
@@ -178,12 +178,10 @@ static VALUE rb_yaji_parser_parse_chunk(VALUE chunk, VALUE self)
 	}
 	for (i=0; i<RARRAY_LEN(p->events); i++) {
 		if (NIL_P(p->input)) {
-			VALUE params[4];
-			params[0] = p->on_object_cb;
-			params[1] = p->object_stack;
-			params[2] = p->filter;
-			params[3] = p->with_path ? Qtrue : Qfalse;
-			rb_yaji_each_iter(RARRAY_PTR(p->events)[i], params);
+			p->effective_proc = p->on_object_cb;
+			p->effective_filter = p->filter;
+			p->effective_with_path = p->with_path ? Qtrue : Qfalse;
+			rb_yaji_each_iter(RARRAY_PTR(p->events)[i], self);
 		} else {
 			rb_funcall(p->parser_cb, id_call, 1, RARRAY_PTR(p->events)[i]);
 		}
@@ -335,59 +333,55 @@ static int rb_yaji_str_start_with(VALUE str, VALUE filter)
 	return 0;
 }
 
-static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
+static VALUE rb_yaji_each_iter(VALUE chunk, VALUE parser)
 {
-	VALUE* params = (VALUE*)params_p;
+	yaji_parser* p = (yaji_parser*) DATA_PTR(parser);
 	VALUE path = rb_ary_shift(chunk);
 	VALUE event = rb_ary_shift(chunk);
 	VALUE value = rb_ary_shift(chunk);
-	VALUE proc = params[0];
-	VALUE stack = params[1];
-	VALUE filter = params[2];
-	VALUE with_path = params[3];
 	VALUE last_entry, object, container, key, hash;
 
-	if (NIL_P(filter) || rb_yaji_str_start_with(path, filter)) {
+	if (NIL_P(p->effective_filter) || rb_yaji_str_start_with(path, p->effective_filter)) {
 		if (event == sym_hash_key) {
-			rb_ary_push(stack, value);
+			rb_ary_push(p->object_stack, value);
 		} else if (event == sym_start_hash || event == sym_start_array) {
 			container = (event == sym_start_hash) ? rb_hash_new() : rb_ary_new();
-			last_entry = rb_ary_entry(stack, -1);
+			last_entry = rb_ary_entry(p->object_stack, -1);
 			switch(TYPE(last_entry)) {
 			case T_STRING:
-				key = rb_ary_pop(stack);
-				hash = rb_ary_entry(stack, -1);
+				key = rb_ary_pop(p->object_stack);
+				hash = rb_ary_entry(p->object_stack, -1);
 				rb_hash_aset(hash, key, container);
 				break;
 			case T_ARRAY:
 				rb_ary_push(last_entry, container);
 			}
-			rb_ary_push(stack, container);
+			rb_ary_push(p->object_stack, container);
 		} else if (event == sym_end_hash || event == sym_end_array) {
-			object = rb_ary_pop(stack);
-			if (RARRAY_LEN(stack) == 0) {
-				if (with_path == Qnil || with_path == Qfalse) {
-					rb_funcall(proc, id_call, 1, object);
+			object = rb_ary_pop(p->object_stack);
+			if (RARRAY_LEN(p->object_stack) == 0) {
+				if (RTEST(p->effective_with_path)) {
+					rb_funcall(p->effective_proc, id_call, 1, rb_ary_new3(2, path, object));
 				} else {
-					rb_funcall(proc, id_call, 1, rb_ary_new3(2, path, object));
+					rb_funcall(p->effective_proc, id_call, 1, object);
 				}
 			}
 		} else {
-			last_entry = rb_ary_entry(stack, -1);
+			last_entry = rb_ary_entry(p->object_stack, -1);
 			switch(TYPE(last_entry)) {
 			case T_STRING:
-				key = rb_ary_pop(stack);
-				hash = rb_ary_entry(stack, -1);
+				key = rb_ary_pop(p->object_stack);
+				hash = rb_ary_entry(p->object_stack, -1);
 				rb_hash_aset(hash, key, value);
 				break;
 			case T_ARRAY:
 				rb_ary_push(last_entry, value);
 				break;
 			case T_NIL:
-				if (with_path == Qnil || with_path == Qfalse) {
-					rb_funcall(proc, id_call, 1, value);
+				if (RTEST(p->effective_with_path)) {
+					rb_funcall(p->effective_proc, id_call, 1, rb_ary_new3(2, path, value));
 				} else {
-					rb_funcall(proc, id_call, 1, rb_ary_new3(2, path, value));
+					rb_funcall(p->effective_proc, id_call, 1, value);
 				}
 				break;
 			}
@@ -398,7 +392,7 @@ static VALUE rb_yaji_each_iter(VALUE chunk, VALUE* params_p)
 
 static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 {
-	VALUE filter, proc, options, params[4];
+	VALUE filter, proc, options;
 	yaji_parser* p = (yaji_parser*) DATA_PTR(self);
 
 	if (NIL_P(p->input)) {
@@ -406,23 +400,23 @@ static VALUE rb_yaji_parser_each(int argc, VALUE* argv, VALUE self)
 	}
 	RETURN_ENUMERATOR(self, argc, argv);
 	rb_scan_args(argc, argv, "02&", &filter, &options, &proc);
-	params[0] = proc;	    // callback
-	params[1] = rb_ary_new();   // stack
+	p->effective_proc = proc;
+	p->object_stack = rb_ary_new();
 	if (NIL_P(filter)) {
-		params[2] = p->filter;
+		p->effective_filter = p->filter;
 	} else {
-		params[2] = filter;
+		p->effective_filter = filter;
 	}
-	params[3] = p->with_path ? Qtrue : Qfalse;
+	p->effective_with_path = p->with_path ? Qtrue : Qfalse;
 	if (options != Qnil) {
 		VALUE arg;
 		Check_Type(options, T_HASH);
 		arg = rb_hash_aref(options, sym_with_path);
 		if (!NIL_P(arg)) {
-			params[3] = arg;
+			p->effective_with_path = arg;
 		}
 	}
-	rb_block_call(self, id_parse, 0, NULL, rb_yaji_each_iter, (VALUE)params);
+	rb_block_call(self, id_parse, 0, NULL, rb_yaji_each_iter, self);
 	return Qnil;
 }
 
@@ -459,6 +453,10 @@ static void rb_yaji_parser_mark(void *parser)
 		rb_gc_mark(p->parser_cb);
 		rb_gc_mark(p->on_object_cb);
 		rb_gc_mark(p->chunk);
+		rb_gc_mark(p->object_stack);
+		rb_gc_mark(p->effective_filter);
+		rb_gc_mark(p->effective_with_path);
+		rb_gc_mark(p->effective_proc);
 	}
 }
 
