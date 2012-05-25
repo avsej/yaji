@@ -457,6 +457,7 @@ static void rb_yaji_parser_mark(void *parser)
 		rb_gc_mark(p->path);
 		rb_gc_mark(p->path_str);
 		rb_gc_mark(p->parser_cb);
+		rb_gc_mark(p->on_object_cb);
 		rb_gc_mark(p->chunk);
 	}
 }
