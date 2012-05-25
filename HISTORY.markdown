@@ -1,3 +1,7 @@
+=== 0.3.1 / 2012-05-25
+
+* Protect on_object callback from GC
+
 === 0.3.0 / 2012-04-18
 
 * Allow to specify filter at parser initialization
