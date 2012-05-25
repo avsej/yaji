@@ -1,3 +1,7 @@
+=== 0.3.2 / 2012-05-25
+
+* Don't pass stack variables to enumerator (fixes segfaults)
+
 === 0.3.1 / 2012-05-25
 
 * Protect on_object callback from GC
