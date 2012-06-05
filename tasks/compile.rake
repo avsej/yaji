@@ -11,7 +11,7 @@ Rake::ExtensionTask.new("parser_ext", gemspec) do |ext|
   ext.cross_compile = true
   ext.cross_platform = [ENV['HOST'] || "i386-mingw32"]
   if ENV['RUBY_CC_VERSION']
-    ext.lib_dir = "lib/couchbase"
+    ext.lib_dir = "lib/yaji"
   end
   ext.cross_compiling do |spec|
     spec.files.delete("lib/yaji/parser_ext.so")
