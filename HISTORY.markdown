@@ -1,3 +1,7 @@
+=== 0.3.3 / 2012-06-05
+
+* Fix load path for windows gem
+
 === 0.3.2 / 2012-05-25
 
 * Don't pass stack variables to enumerator (fixes segfaults)
