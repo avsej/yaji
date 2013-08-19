@@ -1,3 +1,7 @@
+=== 0.3.4 / 2012-06-05
+
+* Build gem for ruby 2.0.0 on windows
+
 === 0.3.3 / 2012-06-05
 
 * Fix load path for windows gem
