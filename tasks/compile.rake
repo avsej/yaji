@@ -18,17 +18,46 @@ version_router = lambda do |t|
   end
 end
 
+class Platform
+  attr_reader :name, :host, :versions
+
+  def initialize(params)
+    @name = params[:name]
+    @host = params[:host]
+    @versions = params[:versions]
+  end
+
+  def each_version
+    @versions.each do |v|
+      yield(v, v[/\d\.\d\.\d/])
+    end
+  end
+
+  def short_versions
+    res = []
+    each_version do |long, short|
+      res << short
+    end
+    res
+  end
+end
+
+recent = "2.0.0-p353"
+CROSS_PLATFORMS = [
+  Platform.new(:name => 'x64-mingw32', :host => 'x86_64-w64-mingw32', :versions => %w(1.9.3-p484 2.0.0-p353 2.1.0)),
+  Platform.new(:name => 'x86-mingw32', :host => 'i686-w64-mingw32', :versions => %w(1.8.7-p374 1.9.3-p484 2.0.0-p353 2.1.0)),
+]
 Rake::ExtensionTask.new("parser_ext", gemspec) do |ext|
   ext.ext_dir = File.join('ext', 'yaji')
 
   ext.cross_compile = true
-  ext.cross_platform = ENV['HOST'] || "i386-mingw32"
+  ext.cross_platform = ENV['TARGET']
   if ENV['RUBY_CC_VERSION']
     ext.lib_dir = "lib/yaji"
   end
   ext.cross_compiling do |spec|
     spec.files.delete("lib/yaji/parser_ext.so")
-    spec.files.push("lib/parser_ext.rb", Dir["lib/yaji/{1.8,1.9,2.0}/parser_ext.so"])
+    spec.files.push("lib/parser_ext.rb", Dir["lib/yaji/*/parser_ext.so"])
     file "#{ext.tmp_dir}/#{ext.cross_platform}/stage/lib/parser_ext.rb", &version_router
   end
 
@@ -41,8 +70,11 @@ task :cross => "lib/parser_ext.rb"
 
 desc "Package gem for windows"
 task "package:windows" => :package do
-  sh("env RUBY_CC_VERSION=1.8.7 RBENV_VERSION=1.8.7-p370 rbenv exec bundle exec rake cross compile")
-  sh("env RUBY_CC_VERSION=1.9.2 RBENV_VERSION=1.9.2-p320 rbenv exec bundle exec rake cross compile")
-  sh("env RUBY_CC_VERSION=2.0.0 RBENV_VERSION=2.0.0-p247 rbenv exec bundle exec rake cross compile")
-  sh("env RUBY_CC_VERSION=1.8.7:1.9.2:2.0.0 RBENV_VERSION=1.9.2-p320 rbenv exec bundle exec rake cross native gem")
+  CROSS_PLATFORMS.each do |platform|
+    ENV['TARGET'] = platform.name
+    platform.each_version do |long, short|
+      sh("env RUBY_CC_VERSION=#{short} RBENV_VERSION=#{long} rbenv exec rake cross compile")
+    end
+    sh("env RUBY_CC_VERSION=#{platform.short_versions.join(":")} RBENV_VERSION=#{recent} rbenv exec rake cross native gem")
+  end
 end
