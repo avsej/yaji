@@ -1,4 +1,8 @@
-=== 0.3.4 / 2012-06-05
+=== 0.3.5 / 2014-01-08
+
+* Build 64-bit versions for windows
+
+=== 0.3.4 / 2013-07-19
 
 * Build gem for ruby 2.0.0 on windows
 
