@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 
-require "yaji/version"
-require "parser_ext"
+require 'yaji/version'
+require 'parser_ext'
 
 module YAJI
 end
