@@ -363,6 +363,23 @@ class TestParser < MiniTest::Unit::TestCase
     end
   end
 
+  def test_it_correctly_handles_empty_hashes
+    chunks = ['{"rows":[{"value":{}}]}']
+
+    parser = YAJI::Parser.new(:filter => '/rows/')
+
+    objects = []
+    parser.on_object do |obj|
+      objects << obj
+    end
+
+    chunks.each do |chunk|
+      parser.write(chunk)
+    end
+
+    assert_equal 1, objects.size
+  end
+
   protected
 
   def toys_json_str

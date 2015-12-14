@@ -74,6 +74,7 @@ static yajl_callbacks yaji_callbacks = {
 typedef struct {
 	int symbolize_keys;
 	int key_in_use;
+	int empty_hash;
 	int with_path;
 	VALUE input;
 	VALUE rbufsize;

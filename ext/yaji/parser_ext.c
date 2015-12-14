@@ -99,6 +99,7 @@ static int yaji_hash_key(void *ctx, const unsigned char *val, unsigned int len)
 	VALUE key, rv;
 	YAJI_TO_STR((const char *)val, len, key);
 	key = p->symbolize_keys ? ID2SYM(rb_to_id(key)) : key;
+	p->empty_hash = 0;
 	if (p->key_in_use) {
 		rb_ary_pop(p->path);
 	} else {
@@ -118,6 +119,7 @@ static int yaji_start_hash(void *ctx)
 {
 	yaji_parser* p = (yaji_parser*) DATA_PTR(ctx);
 	p->key_in_use = 0;
+	p->empty_hash = 1;
 	VALUE rv = rb_ary_new3(3, p->path_str, sym_start_hash, Qnil);
 	rb_ary_push(p->events, rv);
 	return STATUS_CONTINUE;
@@ -126,6 +128,12 @@ static int yaji_start_hash(void *ctx)
 static int yaji_end_hash(void *ctx)
 {
 	yaji_parser* p = (yaji_parser*) DATA_PTR(ctx);
+	if (p->empty_hash) {
+		p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
+		VALUE rv = rb_ary_new3(3, p->path_str, sym_end_hash, Qnil);
+		rb_ary_push(p->events, rv);
+	}
+	p->empty_hash = 0;
 	rb_ary_pop(p->path);
 	p->path_str = rb_ary_join(p->path, rb_str_new2("/"));
 	VALUE rv = rb_ary_new3(3, p->path_str, sym_end_hash, Qnil);
