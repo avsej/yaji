@@ -133,16 +133,20 @@ class TestParser < MiniTest::Unit::TestCase
     parser.each('/rows') do |o|
       objects << o
     end
-    expected = [[{
-      'id' => 'buzz',
-      'props' => {'humanoid' => true, 'armed' => true},
-      'movies' => [1, 2, 3]
-    },
-                 {
-                   'id' => 'barbie',
-                   'props' => {'humanoid' => true, 'armed' => false},
-                   'movies' => [2, 3]
-                 }]]
+    expected = [
+      [
+        {
+          'id' => 'buzz',
+          'props' => {'humanoid' => true, 'armed' => true},
+          'movies' => [1, 2, 3]
+        },
+        {
+          'id' => 'barbie',
+          'props' => {'humanoid' => true, 'armed' => false},
+          'movies' => [2, 3]
+        }
+      ]
+    ]
     assert_equal expected, objects
   end
 
@@ -152,21 +156,23 @@ class TestParser < MiniTest::Unit::TestCase
     parser.each('/rows/') do |o|
       objects << o
     end
-    expected = [{
-      'id' => 'buzz',
-      'props' => {'humanoid' => true, 'armed' => true},
-      'movies' => [1, 2, 3]
-    },
-                {
-                  'id' => 'barbie',
-                  'props' => {'humanoid' => true, 'armed' => false},
-                  'movies' => [2, 3]
-                }]
+    expected = [
+      {
+        'id' => 'buzz',
+        'props' => {'humanoid' => true, 'armed' => true},
+        'movies' => [1, 2, 3]
+      },
+      {
+        'id' => 'barbie',
+        'props' => {'humanoid' => true, 'armed' => false},
+        'movies' => [2, 3]
+      }
+    ]
     assert_equal expected, objects
   end
 
   def test_it_could_curb_async_approach
-    curl = Curl::Easy.new('http://avsej.net/test.json')
+    curl = Curl::Easy.new('https://avsej.net/test.json')
     parser = YAJI::Parser.new(curl)
     object = parser.each.to_a.first
     expected = {'foo' => 'bar', 'baz' => {'nums' => [42, 3.1415]}}
@@ -179,17 +185,19 @@ class TestParser < MiniTest::Unit::TestCase
     parser.each(['/total_rows', '/rows/']) do |o|
       objects << o
     end
-    expected = [2,
-                {
-                  'id' => 'buzz',
-                  'props' => {'humanoid' => true, 'armed' => true},
-                  'movies' => [1, 2, 3]
-                },
-                {
-                  'id' => 'barbie',
-                  'props' => {'humanoid' => true, 'armed' => false},
-                  'movies' => [2, 3]
-                }]
+    expected = [
+      2,
+      {
+        'id' => 'buzz',
+        'props' => {'humanoid' => true, 'armed' => true},
+        'movies' => [1, 2, 3]
+      },
+      {
+        'id' => 'barbie',
+        'props' => {'humanoid' => true, 'armed' => false},
+        'movies' => [2, 3]
+      }
+    ]
     assert_equal expected, objects
   end
 
@@ -199,17 +207,25 @@ class TestParser < MiniTest::Unit::TestCase
     parser.each(['/total_rows', '/rows/'], :with_path => true) do |o|
       objects << o
     end
-    expected = [['/total_rows', 2],
-                ['/rows/', {
-                  'id' => 'buzz',
-                  'props' => {'humanoid' => true, 'armed' => true},
-                  'movies' => [1, 2, 3]
-                }],
-                ['/rows/', {
-                  'id' => 'barbie',
-                  'props' => {'humanoid' => true, 'armed' => false},
-                  'movies' => [2, 3]
-                }]]
+    expected = [
+      ['/total_rows', 2],
+      [
+        '/rows/',
+        {
+          'id' => 'buzz',
+          'props' => {'humanoid' => true, 'armed' => true},
+          'movies' => [1, 2, 3]
+        }
+      ],
+      [
+        '/rows/',
+        {
+          'id' => 'barbie',
+          'props' => {'humanoid' => true, 'armed' => false},
+          'movies' => [2, 3]
+        }
+      ]
+    ]
     assert_equal expected, objects
   end
 
@@ -221,17 +237,25 @@ class TestParser < MiniTest::Unit::TestCase
     parser.each do |o|
       objects << o
     end
-    expected = [['/total_rows', 2],
-                ['/rows/', {
-                  'id' => 'buzz',
-                  'props' => {'humanoid' => true, 'armed' => true},
-                  'movies' => [1, 2, 3]
-                }],
-                ['/rows/', {
-                  'id' => 'barbie',
-                  'props' => {'humanoid' => true, 'armed' => false},
-                  'movies' => [2, 3]
-                }]]
+    expected = [
+      ['/total_rows', 2],
+      [
+        '/rows/',
+        {
+          'id' => 'buzz',
+          'props' => {'humanoid' => true, 'armed' => true},
+          'movies' => [1, 2, 3]
+        }
+      ],
+      [
+        '/rows/',
+        {
+          'id' => 'barbie',
+          'props' => {'humanoid' => true, 'armed' => false},
+          'movies' => [2, 3]
+        }
+      ]
+    ]
     assert_equal expected, objects
   end
 
@@ -302,16 +326,18 @@ class TestParser < MiniTest::Unit::TestCase
     JSON
     parser << data
 
-    expected = [{
-      'id' => 'buzz',
-      'props' => {'humanoid' => true, 'armed' => true},
-      'movies' => [1, 2, 3]
-    },
-                {
-                  'id' => 'barbie',
-                  'props' => {'humanoid' => true, 'armed' => false},
-                  'movies' => [2, 3]
-                }]
+    expected = [
+      {
+        'id' => 'buzz',
+        'props' => {'humanoid' => true, 'armed' => true},
+        'movies' => [1, 2, 3]
+      },
+      {
+        'id' => 'barbie',
+        'props' => {'humanoid' => true, 'armed' => false},
+        'movies' => [2, 3]
+      }
+    ]
     assert_equal expected, objects
   end
 
