@@ -1,3 +1,8 @@
+=== 0.3.6 / 2017-01-18
+
+* Fix handling empty hashes
+* Build gem for ruby 2.0.0-p645, 2.1.6, 2.2.2, 2.3.0 and 2.4.0
+
 === 0.3.5 / 2014-01-08
 
 * Build 64-bit versions for windows
